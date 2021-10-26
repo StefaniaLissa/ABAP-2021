@@ -1,0 +1,59 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_LLENAR_SPFLI
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  z_llenar_spfli.
+
+*----------------------------------------------------------------------*
+*  DECLARACION DE TABLAS INTERNAS
+*----------------------------------------------------------------------*
+DATA: ti_spfli TYPE STANDARD TABLE OF spfli,
+      wa_spfli LIKE LINE OF ti_spfli.
+
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+*----------------------------------------------------------------------*
+
+  CLEAR wa_spfli.
+  wa_spfli-carrid = 'AAA'.
+  wa_spfli-connid = 1700.
+  wa_spfli-countryfr = 'ESP'.
+  wa_spfli-cityfrom = 'Malaga'.
+  wa_spfli-airpfrom = 'ZEN'.
+  wa_spfli-countryto = 'BOL'.
+  wa_spfli-cityto = 'Madrid'.
+  INSERT into spfli values wa_spfli.
+
+  CLEAR wa_spfli.
+  wa_spfli-carrid = 'BBB'.
+  wa_spfli-connid = 8700.
+  wa_spfli-countryfr = 'ARG'.
+  wa_spfli-cityfrom = 'Rosario'.
+  wa_spfli-airpfrom = 'TEN'.
+  wa_spfli-countryto = 'URU'.
+  wa_spfli-cityto = 'Montevideo'.
+  INSERT into spfli values wa_spfli.
+
+  CLEAR wa_spfli.
+  wa_spfli-carrid = 'BBB'.
+  wa_spfli-connid = 8800.
+  wa_spfli-countryfr = 'VEN'.
+  wa_spfli-cityfrom = 'Caracas'.
+  wa_spfli-airpfrom = 'OEN'.
+  wa_spfli-countryto = 'COL'.
+  wa_spfli-cityto = 'Bogota'.
+  INSERT into spfli values wa_spfli.
+
+  CLEAR wa_spfli.
+  wa_spfli-carrid = 'CCC'.
+  wa_spfli-connid = 5700.
+  wa_spfli-countryfr = 'CHI'.
+  wa_spfli-cityfrom = 'Santiago'.
+  wa_spfli-airpfrom = 'GEN'.
+  wa_spfli-countryto = 'ESP'.
+  wa_spfli-cityto = 'Madrid'.
+  INSERT into spfli values wa_spfli.
+

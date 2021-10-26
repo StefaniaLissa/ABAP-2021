@@ -1,0 +1,744 @@
+*&---------------------------------------------------------------------*
+*& Module Pool       ZPRUEBA_DIALOGO
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+PROGRAM  zprueba_dialogo.
+
+INCLUDE: zprueba_dialogo_top,
+         zprueba_dialogo_pbo,
+         zprueba_dialogo_pai,
+         zprueba_dialogo_sub.
+
+*&---------------------------------------------------------------------*
+*&  Include           ZPRUEBA_DIALOGO_TOP
+*&---------------------------------------------------------------------*
+
+TYPE-POOLS: slis.
+
+DATA: BEGIN OF ti_usuarios OCCURS 0,
+       marca(1) TYPE c,
+       dni TYPE	z_dni,
+       nombre_ape TYPE z_nombre_ape,
+       estado_usu	TYPE z_estado_usu,
+       direccion TYPE	z_direccion,
+       codigo_postal TYPE	z_codigo_postal,
+       f_nacimiento	TYPE z_fnacimiento,
+       estado_civil TYPE z_estado_civil,
+      END OF ti_usuarios.
+
+DATA: st_usuarios LIKE LINE OF ti_usuarios,
+      ti_botones TYPE slis_t_extab.
+
+DATA: BEGIN OF ti_usuarios_aux OCCURS 0,
+       dni TYPE	z_dni,
+       nombre_ape TYPE z_nombre_ape,
+       estado_usu	TYPE z_estado_usu,
+       direccion TYPE	z_direccion,
+       codigo_postal TYPE	z_codigo_postal,
+       f_nacimiento	TYPE z_fnacimiento,
+       estado_civil TYPE z_estado_civil,
+      END OF ti_usuarios_aux.
+
+DATA: st_usuarios_aux LIKE LINE OF ti_usuarios_aux.
+
+DATA: BEGIN OF wa_screen_0100,
+       dni TYPE	z_dni,
+      END OF wa_screen_0100.
+
+DATA:  v_ucomm TYPE sy-ucomm,
+       v_dni LIKE wa_screen_0100-dni,
+       v_cantidad TYPE i,
+       v_answer(1) TYPE c,
+       st_tabla_usuarios TYPE ztabla_usuarios.
+
+DATA: BEGIN OF wa_screen_0300,
+       dni TYPE	z_dni,
+       nombre_ape TYPE z_nombre_ape,
+       estado_usu	TYPE z_estado_usu,
+       direccion TYPE	z_direccion,
+       codigo_postal TYPE	z_codigo_postal,
+       f_nacimiento	TYPE z_fnacimiento,
+       estado_civil TYPE z_estado_civil,
+      END OF wa_screen_0300.
+
+
+*&SPWIZARD: DECLARATION OF TABLECONTROL 'TC_USUARIOS' ITSELF
+CONTROLS: tc_usuarios TYPE TABLEVIEW USING SCREEN 0200.
+
+*&SPWIZARD: LINES OF TABLECONTROL 'TC_USUARIOS'
+DATA:     g_tc_usuarios_lines  LIKE sy-loopc.
+
+DATA:     ok_code LIKE sy-ucomm.
+
+*&SPWIZARD: FUNCTION CODES FOR TABSTRIP 'TS_USUARIOS'
+CONSTANTS: BEGIN OF c_ts_usuarios,
+             tab1 LIKE sy-ucomm VALUE 'TS_USUARIOS_FC1',
+             tab2 LIKE sy-ucomm VALUE 'TS_USUARIOS_FC2',
+             tab3 LIKE sy-ucomm VALUE 'TS_USUARIOS_FC3',
+           END OF c_ts_usuarios.
+*&SPWIZARD: DATA FOR TABSTRIP 'TS_USUARIOS'
+CONTROLS:  ts_usuarios TYPE TABSTRIP.
+DATA:      BEGIN OF g_ts_usuarios,
+             subscreen   LIKE sy-dynnr,
+             prog        LIKE sy-repid VALUE 'ZPRUEBA_DIALOGO',
+             pressed_tab LIKE sy-ucomm VALUE c_ts_usuarios-tab1,
+           END OF g_ts_usuarios.
+
+*&---------------------------------------------------------------------*
+*&  Include           ZPRUEBA_DIALOGO_PBO
+*&---------------------------------------------------------------------*
+
+*&SPWIZARD: OUTPUT MODULE FOR TC 'TC_USUARIOS'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: UPDATE LINES FOR EQUIVALENT SCROLLBAR
+MODULE tc_usuarios_change_tc_attr OUTPUT.
+  DESCRIBE TABLE ti_usuarios LINES tc_usuarios-lines.
+ENDMODULE.                    "TC_USUARIOS_CHANGE_TC_ATTR OUTPUT
+
+*&SPWIZARD: OUTPUT MODULE FOR TC 'TC_USUARIOS'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: GET LINES OF TABLECONTROL
+MODULE tc_usuarios_get_lines OUTPUT.
+  g_tc_usuarios_lines = sy-loopc.
+ENDMODULE.                    "TC_USUARIOS_GET_LINES OUTPUT
+
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_0200  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE status_0200 OUTPUT.
+  SET PF-STATUS '0200'.
+  SET TITLEBAR '0200'.
+
+ENDMODULE.                 " STATUS_0200  OUTPUT
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_0300  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE status_0300 OUTPUT.
+  SET PF-STATUS '0300'.
+  SET TITLEBAR '0300'.
+
+ENDMODULE.                 " STATUS_0300  OUTPUT
+
+*&SPWIZARD: OUTPUT MODULE FOR TS 'TS_USUARIOS'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: SETS ACTIVE TAB
+MODULE ts_usuarios_active_tab_set OUTPUT.
+  ts_usuarios-activetab = g_ts_usuarios-pressed_tab.
+  CASE g_ts_usuarios-pressed_tab.
+    WHEN c_ts_usuarios-tab1.
+      g_ts_usuarios-subscreen = '0101'.
+    WHEN c_ts_usuarios-tab2.
+      g_ts_usuarios-subscreen = '0102'.
+    WHEN c_ts_usuarios-tab3.
+      g_ts_usuarios-subscreen = '0103'.
+    WHEN OTHERS.
+*&SPWIZARD:      DO NOTHING
+  ENDCASE.
+ENDMODULE.                    "TS_USUARIOS_ACTIVE_TAB_SET OUTPUT
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+
+  SET PF-STATUS '0100'.
+  SET TITLEBAR '0100'.
+
+ENDMODULE.                 " STATUS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*&      Module  CARGAR_TC_0200  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE cargar_tc_0200 OUTPUT.
+
+  CLEAR: ti_usuarios_aux, st_usuarios, ti_usuarios.
+  REFRESH: ti_usuarios_aux, ti_usuarios.
+
+  IF NOT wa_screen_0100-dni IS INITIAL.
+*   Recupero solo el dni introducido
+    SELECT dni nombre_ape estado_usu direccion
+           codigo_postal f_nacimiento estado_civil
+      FROM ztabla_usuarios
+       INTO TABLE ti_usuarios_aux
+        WHERE dni EQ wa_screen_0100-dni.
+  ELSE.
+*   Recupero todos los DNIs
+    SELECT dni nombre_ape estado_usu direccion
+           codigo_postal f_nacimiento estado_civil
+      FROM ztabla_usuarios
+         INTO TABLE ti_usuarios_aux.
+  ENDIF.
+
+* Pasamos el contenido a la tabla del TC
+  LOOP AT ti_usuarios_aux INTO st_usuarios_aux.
+    CLEAR st_usuarios.
+    st_usuarios-dni = st_usuarios_aux-dni.
+    st_usuarios-nombre_ape = st_usuarios_aux-nombre_ape.
+    st_usuarios-estado_usu = st_usuarios_aux-estado_usu.
+    st_usuarios-direccion = st_usuarios_aux-direccion.
+    st_usuarios-codigo_postal = st_usuarios_aux-codigo_postal.
+    st_usuarios-f_nacimiento = st_usuarios_aux-f_nacimiento.
+    st_usuarios-estado_civil = st_usuarios_aux-estado_civil.
+    APPEND st_usuarios TO ti_usuarios.
+  ENDLOOP.
+ENDMODULE.                 " CARGAR_TC_0200  OUTPUT
+*&---------------------------------------------------------------------*
+*&      Module  EXIT_0300  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE exit_0300 INPUT.
+  CALL SCREEN 0200.
+ENDMODULE.                 " EXIT_0300  INPUT
+*&---------------------------------------------------------------------*
+*&      Module  CARGAR_CAMPOS_0300  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE cargar_campos_0300 OUTPUT.
+
+  READ TABLE ti_usuarios INTO st_usuarios WITH KEY marca = 'X'.
+
+  IF sy-subrc EQ 0.
+    CLEAR wa_screen_0300.
+    wa_screen_0300-dni = st_usuarios-dni.
+    wa_screen_0300-nombre_ape = st_usuarios-nombre_ape.
+    wa_screen_0300-estado_usu = st_usuarios-estado_usu.
+    wa_screen_0300-direccion = st_usuarios-direccion.
+    wa_screen_0300-f_nacimiento = st_usuarios-f_nacimiento.
+    wa_screen_0300-estado_civil = st_usuarios-estado_civil.
+  ENDIF.
+
+ENDMODULE.                 " CARGAR_CAMPOS_0300  OUTPUT
+
+*&---------------------------------------------------------------------*
+*&  Include           ZPRUEBA_DIALOGO_PAI
+*&---------------------------------------------------------------------*
+
+*&SPWIZARD: INPUT MODUL FOR TC 'TC_USUARIOS'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: MARK TABLE
+MODULE tc_usuarios_mark INPUT.
+  DATA: g_tc_usuarios_wa2 LIKE LINE OF ti_usuarios.
+  IF tc_usuarios-line_sel_mode = 1
+  AND st_usuarios-marca = 'X'.
+    LOOP AT ti_usuarios INTO g_tc_usuarios_wa2
+      WHERE marca = 'X'.
+      g_tc_usuarios_wa2-marca = ''.
+      MODIFY ti_usuarios
+        FROM g_tc_usuarios_wa2
+        TRANSPORTING marca.
+    ENDLOOP.
+  ENDIF.
+  MODIFY ti_usuarios
+    FROM st_usuarios
+    INDEX tc_usuarios-current_line
+    TRANSPORTING marca.
+ENDMODULE.                    "TC_USUARIOS_MARK INPUT
+
+*&SPWIZARD: INPUT MODULE FOR TC 'TC_USUARIOS'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: PROCESS USER COMMAND
+MODULE tc_usuarios_user_command INPUT.
+  ok_code = sy-ucomm.
+  PERFORM user_ok_tc USING    'TC_USUARIOS'
+                              'TI_USUARIOS'
+                              'MARCA'
+                     CHANGING ok_code.
+  sy-ucomm = ok_code.
+ENDMODULE.                    "TC_USUARIOS_USER_COMMAND INPUT
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_0100 INPUT.
+
+  MOVE ok_code TO v_ucomm.
+  CLEAR ok_code.
+
+  CASE v_ucomm.
+
+*   Borrar DNI
+    WHEN 'BORRAR'.
+      CLEAR wa_screen_0100-dni.
+
+    WHEN 'BUSCAR_USU'.
+
+      CALL SCREEN 0200 STARTING AT 5 1 ENDING AT 130 25.
+
+  ENDCASE.
+
+
+ENDMODULE.                 " USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0200  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_0200 INPUT.
+
+  MOVE ok_code TO v_ucomm.
+  CLEAR ok_code.
+
+  CASE v_ucomm.
+
+    WHEN 'CANCELAR'.
+      CALL SCREEN 0100.
+
+    WHEN 'MODIFICAR'.
+
+*    Sumarizo la cantidad de filas seleccionadas
+      CLEAR v_cantidad.
+
+      LOOP AT ti_usuarios INTO st_usuarios WHERE marca EQ 'X'.
+        ADD 1 TO v_cantidad.
+      ENDLOOP.
+
+      IF v_cantidad IS INITIAL.
+        MESSAGE e003(z_prueba) WITH 'Debe seleccionar al menos un registro'.
+      ELSEIF v_cantidad EQ 1.
+        CALL SCREEN 0300.
+      ENDIF.
+
+  ENDCASE.
+
+ENDMODULE.                 " USER_COMMAND_0200  INPUT
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0300  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_0300 INPUT.
+
+  MOVE ok_code TO v_ucomm.
+  CLEAR ok_code.
+
+  CASE v_ucomm.
+
+    WHEN 'CANCELAR'.
+      CALL SCREEN 0100.
+
+    WHEN 'CONFIRMAR'.
+
+      CALL FUNCTION 'POPUP_TO_CONFIRM'
+        EXPORTING
+          titlebar              = 'Confirmación'
+          text_question         = 'Está seguro que desea modificar?'
+          text_button_1         = 'Si'
+          text_button_2         = 'No'
+          display_cancel_button = ' '
+        IMPORTING
+          answer                = v_answer
+        EXCEPTIONS
+          text_not_found        = 1
+          OTHERS                = 2.
+
+      IF sy-subrc <> 0.
+        MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+                WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+      ELSE.
+
+        IF v_answer EQ '1'.
+
+          CLEAR st_tabla_usuarios.
+          st_tabla_usuarios-mandt = sy-mandt.
+          st_tabla_usuarios-dni = wa_screen_0300-dni.
+          st_tabla_usuarios-nombre_ape = wa_screen_0300-nombre_ape.
+          st_tabla_usuarios-estado_usu = wa_screen_0300-estado_usu.
+          st_tabla_usuarios-direccion = wa_screen_0300-direccion.
+          st_tabla_usuarios-f_nacimiento = wa_screen_0300-f_nacimiento.
+          st_tabla_usuarios-estado_civil = wa_screen_0300-estado_civil.
+
+          MODIFY ztabla_usuarios FROM st_tabla_usuarios.
+
+          IF sy-subrc EQ 0.
+            COMMIT WORK AND WAIT.
+            MESSAGE s003(z_prueba) WITH 'Los datos han sido modificados correctamente'.
+            CALL SCREEN 0100.
+          ELSE.
+            ROLLBACK WORK.
+          ENDIF.
+
+        ENDIF.
+
+      ENDIF.
+
+  ENDCASE.
+
+ENDMODULE.                 " USER_COMMAND_0300  INPUT
+
+*&SPWIZARD: INPUT MODULE FOR TS 'TS_USUARIOS'. DO NOT CHANGE THIS LINE!
+*&SPWIZARD: GETS ACTIVE TAB
+MODULE ts_usuarios_active_tab_get INPUT.
+  ok_code = sy-ucomm.
+  CASE ok_code.
+    WHEN c_ts_usuarios-tab1.
+      g_ts_usuarios-pressed_tab = c_ts_usuarios-tab1.
+    WHEN c_ts_usuarios-tab2.
+      g_ts_usuarios-pressed_tab = c_ts_usuarios-tab2.
+    WHEN c_ts_usuarios-tab3.
+      g_ts_usuarios-pressed_tab = c_ts_usuarios-tab3.
+    WHEN OTHERS.
+*&SPWIZARD:      DO NOTHING
+  ENDCASE.
+ENDMODULE.                    "TS_USUARIOS_ACTIVE_TAB_GET INPUT
+*&---------------------------------------------------------------------*
+*&      Module  EXIT  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE exit_0100 INPUT.
+
+  LEAVE PROGRAM.
+
+ENDMODULE.                 " EXIT  INPUT
+*&---------------------------------------------------------------------*
+*&      Module  VALIDAR_DNI_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE validar_dni_0100 INPUT.
+
+  IF NOT wa_screen_0100-dni IS INITIAL.
+    CLEAR v_dni.
+    SELECT SINGLE dni
+     FROM ztabla_usuarios
+      INTO v_dni
+       WHERE dni = wa_screen_0100-dni.
+
+    IF sy-subrc NE 0.
+      MESSAGE e003(z_prueba) WITH 'El DNI introducido no existe'.
+    ENDIF.
+
+  ENDIF.
+
+ENDMODULE.                 " VALIDAR_DNI_0100  INPUT
+*&---------------------------------------------------------------------*
+*&      Module  EXIT_0200  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE exit_0200 INPUT.
+
+  LEAVE TO SCREEN 0100.
+
+ENDMODULE.                 " EXIT_0200  INPUT
+
+*&---------------------------------------------------------------------*
+*&  Include           ZPRUEBA_DIALOGO_SUB
+*&---------------------------------------------------------------------*
+
+*----------------------------------------------------------------------*
+*   INCLUDE TABLECONTROL_FORMS                                         *
+*----------------------------------------------------------------------*
+
+*&---------------------------------------------------------------------*
+*&      Form  USER_OK_TC                                               *
+*&---------------------------------------------------------------------*
+ FORM USER_OK_TC USING    P_TC_NAME TYPE DYNFNAM
+                          P_TABLE_NAME
+                          P_MARK_NAME
+                 CHANGING P_OK      LIKE SY-UCOMM.
+
+*&SPWIZARD: BEGIN OF LOCAL DATA----------------------------------------*
+   DATA: L_OK              TYPE SY-UCOMM,
+         L_OFFSET          TYPE I.
+*&SPWIZARD: END OF LOCAL DATA------------------------------------------*
+
+*&SPWIZARD: Table control specific operations                          *
+*&SPWIZARD: evaluate TC name and operations                            *
+   SEARCH P_OK FOR P_TC_NAME.
+   IF SY-SUBRC <> 0.
+     EXIT.
+   ENDIF.
+   L_OFFSET = STRLEN( P_TC_NAME ) + 1.
+   L_OK = P_OK+L_OFFSET.
+*&SPWIZARD: execute general and TC specific operations                 *
+   CASE L_OK.
+     WHEN 'INSR'.                      "insert row
+       PERFORM FCODE_INSERT_ROW USING    P_TC_NAME
+                                         P_TABLE_NAME.
+       CLEAR P_OK.
+
+     WHEN 'DELE'.                      "delete row
+       PERFORM FCODE_DELETE_ROW USING    P_TC_NAME
+                                         P_TABLE_NAME
+                                         P_MARK_NAME.
+       CLEAR P_OK.
+
+     WHEN 'P--' OR                     "top of list
+          'P-'  OR                     "previous page
+          'P+'  OR                     "next page
+          'P++'.                       "bottom of list
+       PERFORM COMPUTE_SCROLLING_IN_TC USING P_TC_NAME
+                                             L_OK.
+       CLEAR P_OK.
+*     WHEN 'L--'.                       "total left
+*       PERFORM FCODE_TOTAL_LEFT USING P_TC_NAME.
+*
+*     WHEN 'L-'.                        "column left
+*       PERFORM FCODE_COLUMN_LEFT USING P_TC_NAME.
+*
+*     WHEN 'R+'.                        "column right
+*       PERFORM FCODE_COLUMN_RIGHT USING P_TC_NAME.
+*
+*     WHEN 'R++'.                       "total right
+*       PERFORM FCODE_TOTAL_RIGHT USING P_TC_NAME.
+*
+     WHEN 'MARK'.                      "mark all filled lines
+       PERFORM FCODE_TC_MARK_LINES USING P_TC_NAME
+                                         P_TABLE_NAME
+                                         P_MARK_NAME   .
+       CLEAR P_OK.
+
+     WHEN 'DMRK'.                      "demark all filled lines
+       PERFORM FCODE_TC_DEMARK_LINES USING P_TC_NAME
+                                           P_TABLE_NAME
+                                           P_MARK_NAME .
+       CLEAR P_OK.
+
+*     WHEN 'SASCEND'   OR
+*          'SDESCEND'.                  "sort column
+*       PERFORM FCODE_SORT_TC USING P_TC_NAME
+*                                   l_ok.
+
+   ENDCASE.
+
+ ENDFORM.                              " USER_OK_TC
+
+*&---------------------------------------------------------------------*
+*&      Form  FCODE_INSERT_ROW                                         *
+*&---------------------------------------------------------------------*
+ FORM fcode_insert_row
+               USING    P_TC_NAME           TYPE DYNFNAM
+                        P_TABLE_NAME             .
+
+*&SPWIZARD: BEGIN OF LOCAL DATA----------------------------------------*
+   DATA L_LINES_NAME       LIKE FELD-NAME.
+   DATA L_SELLINE          LIKE SY-STEPL.
+   DATA L_LASTLINE         TYPE I.
+   DATA L_LINE             TYPE I.
+   DATA L_TABLE_NAME       LIKE FELD-NAME.
+   FIELD-SYMBOLS <TC>                 TYPE CXTAB_CONTROL.
+   FIELD-SYMBOLS <TABLE>              TYPE STANDARD TABLE.
+   FIELD-SYMBOLS <LINES>              TYPE I.
+*&SPWIZARD: END OF LOCAL DATA------------------------------------------*
+
+   ASSIGN (P_TC_NAME) TO <TC>.
+
+*&SPWIZARD: get the table, which belongs to the tc                     *
+   CONCATENATE P_TABLE_NAME '[]' INTO L_TABLE_NAME. "table body
+   ASSIGN (L_TABLE_NAME) TO <TABLE>.                "not headerline
+
+*&SPWIZARD: get looplines of TableControl                              *
+   CONCATENATE 'G_' P_TC_NAME '_LINES' INTO L_LINES_NAME.
+   ASSIGN (L_LINES_NAME) TO <LINES>.
+
+*&SPWIZARD: get current line                                           *
+   GET CURSOR LINE L_SELLINE.
+   IF SY-SUBRC <> 0.                   " append line to table
+     L_SELLINE = <TC>-LINES + 1.
+*&SPWIZARD: set top line                                               *
+     IF L_SELLINE > <LINES>.
+       <TC>-TOP_LINE = L_SELLINE - <LINES> + 1 .
+     ELSE.
+       <TC>-TOP_LINE = 1.
+     ENDIF.
+   ELSE.                               " insert line into table
+     L_SELLINE = <TC>-TOP_LINE + L_SELLINE - 1.
+     L_LASTLINE = <TC>-TOP_LINE + <LINES> - 1.
+   ENDIF.
+*&SPWIZARD: set new cursor line                                        *
+   L_LINE = L_SELLINE - <TC>-TOP_LINE + 1.
+
+*&SPWIZARD: insert initial line                                        *
+   INSERT INITIAL LINE INTO <TABLE> INDEX L_SELLINE.
+   <TC>-LINES = <TC>-LINES + 1.
+*&SPWIZARD: set cursor                                                 *
+   SET CURSOR LINE L_LINE.
+
+ ENDFORM.                              " FCODE_INSERT_ROW
+
+*&---------------------------------------------------------------------*
+*&      Form  FCODE_DELETE_ROW                                         *
+*&---------------------------------------------------------------------*
+ FORM fcode_delete_row
+               USING    P_TC_NAME           TYPE DYNFNAM
+                        P_TABLE_NAME
+                        P_MARK_NAME   .
+
+*&SPWIZARD: BEGIN OF LOCAL DATA----------------------------------------*
+   DATA L_TABLE_NAME       LIKE FELD-NAME.
+
+   FIELD-SYMBOLS <TC>         TYPE cxtab_control.
+   FIELD-SYMBOLS <TABLE>      TYPE STANDARD TABLE.
+   FIELD-SYMBOLS <WA>.
+   FIELD-SYMBOLS <MARK_FIELD>.
+*&SPWIZARD: END OF LOCAL DATA------------------------------------------*
+
+   ASSIGN (P_TC_NAME) TO <TC>.
+
+*&SPWIZARD: get the table, which belongs to the tc                     *
+   CONCATENATE P_TABLE_NAME '[]' INTO L_TABLE_NAME. "table body
+   ASSIGN (L_TABLE_NAME) TO <TABLE>.                "not headerline
+
+*&SPWIZARD: delete marked lines                                        *
+   DESCRIBE TABLE <TABLE> LINES <TC>-LINES.
+
+   LOOP AT <TABLE> ASSIGNING <WA>.
+
+*&SPWIZARD: access to the component 'FLAG' of the table header         *
+     ASSIGN COMPONENT P_MARK_NAME OF STRUCTURE <WA> TO <MARK_FIELD>.
+
+     IF <MARK_FIELD> = 'X'.
+       DELETE <TABLE> INDEX SYST-TABIX.
+       IF SY-SUBRC = 0.
+         <TC>-LINES = <TC>-LINES - 1.
+       ENDIF.
+     ENDIF.
+   ENDLOOP.
+
+ ENDFORM.                              " FCODE_DELETE_ROW
+
+*&---------------------------------------------------------------------*
+*&      Form  COMPUTE_SCROLLING_IN_TC
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_TC_NAME  name of tablecontrol
+*      -->P_OK       ok code
+*----------------------------------------------------------------------*
+ FORM COMPUTE_SCROLLING_IN_TC USING    P_TC_NAME
+                                       P_OK.
+*&SPWIZARD: BEGIN OF LOCAL DATA----------------------------------------*
+   DATA L_TC_NEW_TOP_LINE     TYPE I.
+   DATA L_TC_NAME             LIKE FELD-NAME.
+   DATA L_TC_LINES_NAME       LIKE FELD-NAME.
+   DATA L_TC_FIELD_NAME       LIKE FELD-NAME.
+
+   FIELD-SYMBOLS <TC>         TYPE cxtab_control.
+   FIELD-SYMBOLS <LINES>      TYPE I.
+*&SPWIZARD: END OF LOCAL DATA------------------------------------------*
+
+   ASSIGN (P_TC_NAME) TO <TC>.
+*&SPWIZARD: get looplines of TableControl                              *
+   CONCATENATE 'G_' P_TC_NAME '_LINES' INTO L_TC_LINES_NAME.
+   ASSIGN (L_TC_LINES_NAME) TO <LINES>.
+
+
+*&SPWIZARD: is no line filled?                                         *
+   IF <TC>-LINES = 0.
+*&SPWIZARD: yes, ...                                                   *
+     L_TC_NEW_TOP_LINE = 1.
+   ELSE.
+*&SPWIZARD: no, ...                                                    *
+     CALL FUNCTION 'SCROLLING_IN_TABLE'
+          EXPORTING
+               ENTRY_ACT             = <TC>-TOP_LINE
+               ENTRY_FROM            = 1
+               ENTRY_TO              = <TC>-LINES
+               LAST_PAGE_FULL        = 'X'
+               LOOPS                 = <LINES>
+               OK_CODE               = P_OK
+               OVERLAPPING           = 'X'
+          IMPORTING
+               ENTRY_NEW             = L_TC_NEW_TOP_LINE
+          EXCEPTIONS
+*              NO_ENTRY_OR_PAGE_ACT  = 01
+*              NO_ENTRY_TO           = 02
+*              NO_OK_CODE_OR_PAGE_GO = 03
+               OTHERS                = 0.
+   ENDIF.
+
+*&SPWIZARD: get actual tc and column                                   *
+   GET CURSOR FIELD L_TC_FIELD_NAME
+              AREA  L_TC_NAME.
+
+   IF SYST-SUBRC = 0.
+     IF L_TC_NAME = P_TC_NAME.
+*&SPWIZARD: et actual column                                           *
+       SET CURSOR FIELD L_TC_FIELD_NAME LINE 1.
+     ENDIF.
+   ENDIF.
+
+*&SPWIZARD: set the new top line                                       *
+   <TC>-TOP_LINE = L_TC_NEW_TOP_LINE.
+
+
+ ENDFORM.                              " COMPUTE_SCROLLING_IN_TC
+
+*&---------------------------------------------------------------------*
+*&      Form  FCODE_TC_MARK_LINES
+*&---------------------------------------------------------------------*
+*       marks all TableControl lines
+*----------------------------------------------------------------------*
+*      -->P_TC_NAME  name of tablecontrol
+*----------------------------------------------------------------------*
+FORM FCODE_TC_MARK_LINES USING P_TC_NAME
+                               P_TABLE_NAME
+                               P_MARK_NAME.
+*&SPWIZARD: EGIN OF LOCAL DATA-----------------------------------------*
+  DATA L_TABLE_NAME       LIKE FELD-NAME.
+
+  FIELD-SYMBOLS <TC>         TYPE cxtab_control.
+  FIELD-SYMBOLS <TABLE>      TYPE STANDARD TABLE.
+  FIELD-SYMBOLS <WA>.
+  FIELD-SYMBOLS <MARK_FIELD>.
+*&SPWIZARD: END OF LOCAL DATA------------------------------------------*
+
+  ASSIGN (P_TC_NAME) TO <TC>.
+
+*&SPWIZARD: get the table, which belongs to the tc                     *
+   CONCATENATE P_TABLE_NAME '[]' INTO L_TABLE_NAME. "table body
+   ASSIGN (L_TABLE_NAME) TO <TABLE>.                "not headerline
+
+*&SPWIZARD: mark all filled lines                                      *
+  LOOP AT <TABLE> ASSIGNING <WA>.
+
+*&SPWIZARD: access to the component 'FLAG' of the table header         *
+     ASSIGN COMPONENT P_MARK_NAME OF STRUCTURE <WA> TO <MARK_FIELD>.
+
+     <MARK_FIELD> = 'X'.
+  ENDLOOP.
+ENDFORM.                                          "fcode_tc_mark_lines
+
+*&---------------------------------------------------------------------*
+*&      Form  FCODE_TC_DEMARK_LINES
+*&---------------------------------------------------------------------*
+*       demarks all TableControl lines
+*----------------------------------------------------------------------*
+*      -->P_TC_NAME  name of tablecontrol
+*----------------------------------------------------------------------*
+FORM FCODE_TC_DEMARK_LINES USING P_TC_NAME
+                                 P_TABLE_NAME
+                                 P_MARK_NAME .
+*&SPWIZARD: BEGIN OF LOCAL DATA----------------------------------------*
+  DATA L_TABLE_NAME       LIKE FELD-NAME.
+
+  FIELD-SYMBOLS <TC>         TYPE cxtab_control.
+  FIELD-SYMBOLS <TABLE>      TYPE STANDARD TABLE.
+  FIELD-SYMBOLS <WA>.
+  FIELD-SYMBOLS <MARK_FIELD>.
+*&SPWIZARD: END OF LOCAL DATA------------------------------------------*
+
+  ASSIGN (P_TC_NAME) TO <TC>.
+
+*&SPWIZARD: get the table, which belongs to the tc                     *
+   CONCATENATE P_TABLE_NAME '[]' INTO L_TABLE_NAME. "table body
+   ASSIGN (L_TABLE_NAME) TO <TABLE>.                "not headerline
+
+*&SPWIZARD: demark all filled lines                                    *
+  LOOP AT <TABLE> ASSIGNING <WA>.
+
+*&SPWIZARD: access to the component 'FLAG' of the table header         *
+     ASSIGN COMPONENT P_MARK_NAME OF STRUCTURE <WA> TO <MARK_FIELD>.
+
+     <MARK_FIELD> = SPACE.
+  ENDLOOP.
+ENDFORM.                                          "fcode_tc_mark_lines

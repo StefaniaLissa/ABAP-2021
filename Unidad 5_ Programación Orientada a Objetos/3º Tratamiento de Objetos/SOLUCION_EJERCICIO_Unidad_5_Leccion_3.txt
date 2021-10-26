@@ -1,0 +1,116 @@
+*&---------------------------------------------------------------------*
+*& Report  ZPRUEBA_OBJETOS_v2
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zprueba_objetos_v2.
+
+*----------------------------------------------------------------------*
+*       CLASS contador DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador DEFINITION.
+  PUBLIC SECTION.
+    METHODS: set IMPORTING value(set_value) TYPE i,
+             incrementar_contador,
+             get EXPORTING value(get_value) TYPE i.
+  PRIVATE SECTION.
+    DATA count TYPE i.
+ENDCLASS.                    "contador DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS contador IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador IMPLEMENTATION.
+  METHOD set.
+    count = set_value.
+  ENDMETHOD.                    "set
+  METHOD incrementar_contador.
+    ADD 1 TO count.
+  ENDMETHOD.                    "incrementar_contador
+  METHOD get.
+    get_value = count.
+  ENDMETHOD.                    "get
+ENDCLASS.                    "contador IMPLEMENTATION
+
+
+*----------------------------------------------------------------------*
+*       CLASS sumador DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS sumador DEFINITION.
+  PUBLIC SECTION.
+    METHODS: set IMPORTING value(set_value) TYPE i,
+             incrementar_sumador,
+             get EXPORTING value(get_value) TYPE i.
+  PRIVATE SECTION.
+    DATA sum TYPE i.
+ENDCLASS.                    "sumador DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS sumador IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS sumador IMPLEMENTATION.
+  METHOD set.
+    sum = set_value.
+  ENDMETHOD.                    "set
+  METHOD incrementar_sumador.
+    ADD 100 TO sum.
+  ENDMETHOD.                    "incrementar_sumador
+  METHOD get.
+    get_value = sum.
+  ENDMETHOD.                    "get
+ENDCLASS.                    " sumador IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+* Declaración de variables
+*----------------------------------------------------------------------*
+DATA: number  TYPE i VALUE 5,
+      number2 TYPE i VALUE 50.
+
+DATA: cnt TYPE REF TO contador,
+      sum TYPE REF TO sumador.
+
+*----------------------------------------------------------------------*
+* Comienza el procesamiento
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+
+* Creo las instancias de los objetos
+  CREATE OBJECT cnt.
+  CREATE OBJECT sum.
+
+  CALL METHOD cnt->set
+    EXPORTING
+      set_value = number.
+
+  CALL METHOD sum->set
+    EXPORTING
+      set_value = number2.
+
+  DO 3 TIMES.
+    CALL METHOD cnt->incrementar_contador.
+  ENDDO.
+
+  CALL METHOD sum->incrementar_sumador.
+
+* Recupero los valores y los imprimo por pantalla
+  CALL METHOD cnt->get
+    IMPORTING
+      get_value = number.
+
+  WRITE number.
+
+  CALL METHOD sum->get
+    IMPORTING
+      get_value = number2.
+
+  WRITE number2.

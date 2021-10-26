@@ -1,0 +1,73 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEJERCICIO_EVENTOS2
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zejercicio_eventos2.
+
+*----------------------------------------------------------------------*
+*       CLASS deuda DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS deuda DEFINITION.
+  PUBLIC SECTION.
+    METHODS incrementar_deuda.
+    EVENTS  valor_critico EXPORTING value(exceso) TYPE i.
+  PRIVATE SECTION.
+    DATA: sum_deudas    TYPE i,
+          umbral TYPE i VALUE 100.
+ENDCLASS.                    "deuda DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS deuda IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS deuda  IMPLEMENTATION.
+  METHOD incrementar_deuda.
+    DATA diferencia TYPE i.
+    ADD 10 TO sum_deudas.
+    IF sum_deudas > umbral.
+      diferencia = sum_deudas - umbral.
+      RAISE EVENT valor_critico EXPORTING exceso = diferencia.
+    ENDIF.
+  ENDMETHOD.                    "incrementar_deuda
+ENDCLASS.                    "deuda IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+*       CLASS manejador DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS manejador DEFINITION.
+  PUBLIC SECTION.
+    METHODS manejar_exceso FOR EVENT valor_critico OF deuda
+            IMPORTING exceso.
+ENDCLASS.                    "manejador DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS manejador IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS manejador IMPLEMENTATION.
+  METHOD manejar_exceso.
+    WRITE: / 'La deuda es: ', exceso.
+  ENDMETHOD.                    "manejar_exceso
+ENDCLASS.                    "manejador IMPLEMENTATION
+
+DATA: deuda TYPE REF TO deuda,
+      manejador TYPE REF TO manejador.
+
+START-OF-SELECTION.
+
+  CREATE OBJECT: deuda, manejador.
+
+  SET HANDLER manejador->manejar_exceso FOR ALL INSTANCES.
+
+  DO 20 TIMES.
+    CALL METHOD deuda->incrementar_deuda.
+  ENDDO.

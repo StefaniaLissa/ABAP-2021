@@ -1,0 +1,93 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEJERCICIO_INTERFACES
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  ZEJERCICIO_INTERFACES.
+
+*----------------------------------------------------------------------*
+*       INTERFACE i_contador
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+INTERFACE i_contador.
+  METHODS imprimir.
+ENDINTERFACE.                    "i_contador
+
+*----------------------------------------------------------------------*
+*       CLASS contador1 DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador1 DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES i_contador.
+    METHODS incrementar.
+  PRIVATE SECTION.
+    DATA cuenta TYPE i.
+ENDCLASS.                    "contador1 DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS contador1 IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador1 IMPLEMENTATION.
+  METHOD i_contador~imprimir.
+    WRITE: / 'El contador es:', cuenta.
+  ENDMETHOD.                    "i_contador~imprimir
+  METHOD incrementar.
+    ADD 1 TO cuenta.
+  ENDMETHOD.                    "incrementar
+ENDCLASS.                    "contador1 IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+*       CLASS contador2 DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador2 DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES i_contador.
+    METHODS incrementar.
+  PRIVATE SECTION.
+    DATA cuenta TYPE i.
+ENDCLASS.                    "contador2 DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS contador2 IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador2 IMPLEMENTATION.
+  METHOD i_contador~imprimir.
+    WRITE: / 'El contador es:', cuenta.
+  ENDMETHOD.                    "i_contador~imprimir
+  METHOD incrementar.
+    ADD 100 TO cuenta.
+  ENDMETHOD.                    "incrementar
+ENDCLASS.                    "contador2 IMPLEMENTATION
+
+DATA: cuenta1  TYPE REF TO contador1,
+      cuenta2  TYPE REF TO contador2,
+      i_contador TYPE REF TO i_contador,
+      ti_contador TYPE TABLE OF REF TO i_contador.
+
+START-OF-SELECTION.
+
+  CREATE OBJECT: cuenta1, cuenta2.
+
+  DO 5 TIMES.
+    CALL METHOD: cuenta1->incrementar,
+                 cuenta2->incrementar.
+  ENDDO.
+
+  APPEND: cuenta1 TO ti_contador,
+          cuenta2 TO ti_contador.
+
+  LOOP AT ti_contador INTO i_contador.
+    CALL METHOD i_contador->imprimir.
+  ENDLOOP.
+

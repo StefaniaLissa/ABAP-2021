@@ -1,0 +1,93 @@
+*&---------------------------------------------------------------------*
+*& Report  ZPRUEBA_SMARTFORMS
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zprueba_smartforms.
+
+* Nombre del modulo de funciones del formulario.
+DATA: v_nombre_form(30) TYPE c.
+
+DATA: ti_usuarios TYPE STANDARD TABLE OF ZUSUARIOS. 
+*Previamente creamos en el Diccionario de datos la estructura ZUSUARIOS
+*con los mismos campos de ZTABLA_USUARIOS a excepción del Mandante
+
+* ---------------------------------------------------------------------*
+START-OF-SELECTION.
+* ---------------------------------------------------------------------*
+
+* Seleccionamos los datos de la tabla de usuarios
+  PERFORM cargar_datos.
+
+* Llamada al formulario Smartform
+  PERFORM invocar_smartform.
+
+
+*&---------------------------------------------------------------------*
+*&      Form  CARGAR_DATOS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM cargar_datos .
+
+  CLEAR   ti_usuarios.
+  REFRESH ti_usuarios.
+
+  SELECT dni nombre_ape estado_usu direccion codigo_postal
+         f_nacimiento estado_civil
+   FROM ztabla_usuarios
+   INTO CORRESPONDING FIELDS OF TABLE ti_usuarios.
+
+ENDFORM.                    " CARGAR_DATOS
+*&---------------------------------------------------------------------*
+*&      Form  INVOCAR_SMARTFORM
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM invocar_smartform .
+
+  IF NOT ti_usuarios[] IS INITIAL.
+
+* Inicializar el formulario.
+    CALL FUNCTION 'SSF_FUNCTION_MODULE_NAME'
+      EXPORTING
+        formname           = 'ZFORMULARIO_PRUEBA'
+      IMPORTING
+        fm_name            = v_nombre_form
+      EXCEPTIONS
+        no_form            = 1
+        no_function_module = 2
+        OTHERS             = 3.
+
+    IF sy-subrc NE 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+       WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+* Enviar datos al formulario e imprimirlo
+    CALL FUNCTION v_nombre_form
+      TABLES
+        ti_usuarios      = ti_usuarios
+      EXCEPTIONS
+        formatting_error = 1
+        internal_error   = 2
+        send_error       = 3
+        user_canceled    = 4
+        OTHERS           = 5.
+
+    IF sy-subrc NE 0.
+      MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+       WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+    ENDIF.
+
+  ENDIF.
+
+ENDFORM.                    " INVOCAR_SMARTFORM

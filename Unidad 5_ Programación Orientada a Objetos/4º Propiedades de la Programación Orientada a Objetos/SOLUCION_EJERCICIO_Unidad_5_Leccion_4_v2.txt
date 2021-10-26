@@ -1,0 +1,76 @@
+*&---------------------------------------------------------------------*
+*& Report  ZPRUEBA_HEREN_POLI
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  ZPRUEBA_HEREN_POLI.
+
+*----------------------------------------------------------------------*
+*       CLASS vehiculo DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS vehiculo DEFINITION.
+  PUBLIC SECTION.
+    METHODS: asignar_km_iniciales IMPORTING value(set_value) TYPE i,
+             incrementar_km.
+  PROTECTED SECTION.
+    DATA km TYPE i.
+ENDCLASS.                    "vehiculo DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS vehiculo IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS vehiculo IMPLEMENTATION.
+  METHOD asignar_km_iniciales.
+    km = set_value.
+  ENDMETHOD.                    "asignar_km_iniciales
+  METHOD incrementar_km.
+    ADD 1 TO km.
+  ENDMETHOD.                    "incrementar_km
+ENDCLASS.                    "vehiculo IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+*       CLASS camion DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS camion DEFINITION INHERITING FROM vehiculo.
+  PUBLIC SECTION.
+    METHODS incrementar_km REDEFINITION.
+    DATA km_camion TYPE i.
+ENDCLASS.                    "camion DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS camion IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS camion IMPLEMENTATION.
+  METHOD incrementar_km.
+    CALL METHOD super->incrementar_km.
+    WRITE / km.
+
+    km_camion = km + 100.
+    WRITE / km_camion.
+  ENDMETHOD.                    "incrementar_km
+ENDCLASS.                    "camion IMPLEMENTATION
+
+DATA: camion_mercedes  TYPE REF TO vehiculo,
+      km_iniciales TYPE i VALUE 5.
+
+START-OF-SELECTION.
+
+  CREATE OBJECT camion_mercedes TYPE camion.
+
+  CALL METHOD camion_mercedes->asignar_km_iniciales
+    EXPORTING
+      set_value = km_iniciales.
+
+  DO 20 TIMES.
+    CALL METHOD camion_mercedes->incrementar_km.
+  ENDDO.

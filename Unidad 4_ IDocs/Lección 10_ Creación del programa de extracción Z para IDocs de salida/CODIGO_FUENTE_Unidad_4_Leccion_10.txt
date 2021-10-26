@@ -1,0 +1,222 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ENVIAR_IDOC_SALIDA
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  z_enviar_idoc_salida.
+
+INCLUDE z_enviar_idoc_salida_top.
+INCLUDE z_enviar_idoc_salida_f01.
+
+*&---------------------------------------------------------------------*
+INITIALIZATION.
+*&---------------------------------------------------------------------*
+  CLEAR   gt_idoc_data_usuarios.
+  REFRESH gt_idoc_data_usuarios.
+
+*&---------------------------------------------------------------------*
+AT SELECTION-SCREEN.
+*&---------------------------------------------------------------------*
+  IF p_dni IS INITIAL .
+    MESSAGE e003(z_prueba) WITH 'Debe ingresar un DNI'.
+  ENDIF.
+
+*&---------------------------------------------------------------------*
+START-OF-SELECTION.
+*&---------------------------------------------------------------------*
+
+*/Carga registro de control
+  PERFORM edidc TABLES   gt_idoc_ctrl_usuarios
+                CHANGING gs_idoc_ctrl_usuarios.
+
+*/Carga registro de datos Idoc
+  PERFORM data_idoc TABLES gt_idoc_data_usuarios
+                    USING  p_dni.
+
+*/Ejecuto Idoc.
+  PERFORM outbound_usuarios TABLES   gt_idoc_ctrl_usuarios
+                                     gt_idoc_data_usuarios
+                            USING    gs_idoc_ctrl_usuarios
+                            CHANGING gv_docnumber.
+
+*/Si el Idoc se disparo paso el nro. del mismo para visualizar su contenido por pantalla.
+  IF NOT gv_docnumber IS INITIAL.
+*/Llamo al programa que fuerza la salida del Idoc a Disco.
+    SUBMIT rseout00 WITH docnum-low EQ gv_docnumber AND RETURN.
+    COMMIT WORK AND WAIT.
+  ENDIF.
+
+
+*&---------------------------------------------------------------------*
+*&  Include           Z_ENVIAR_IDOC_SALIDA_TOP
+*&---------------------------------------------------------------------*
+TYPES BEGIN OF tys_idoc_data.
+        INCLUDE STRUCTURE edidd.
+TYPES END OF tys_idoc_data.
+
+TYPES tyt_idoc_data TYPE STANDARD TABLE OF tys_idoc_data.
+
+TYPES BEGIN OF tys_idoc_ctrl.
+        INCLUDE STRUCTURE edidc.
+TYPES END OF tys_idoc_ctrl.
+
+TYPES tyt_idoc_ctrl TYPE STANDARD TABLE OF tys_idoc_ctrl.
+
+TYPES: BEGIN OF tys_usuarios,
+        dni TYPE  z_dni,
+        nombre_ape TYPE	z_nombre_ape,
+        estado_usu TYPE	z_estado_usu,
+        direccion	TYPE z_direccion,
+        codigo_postal TYPE z_codigo_postal,
+        f_nacimiento TYPE	z_fnacimiento,
+        estado_civil TYPE	z_estado_civil,
+       END OF tys_usuarios.
+
+TYPES: tyt_usuarios TYPE SORTED TABLE OF tys_usuarios.
+
+*/Registro de control del Idoc
+DATA gs_idoc_ctrl_usuarios  TYPE tys_idoc_ctrl.
+
+*/Tabla de datos del Idoc
+DATA: gt_idoc_data_usuarios TYPE tyt_idoc_data WITH HEADER LINE,
+      gt_idoc_ctrl_usuarios TYPE tyt_idoc_ctrl WITH HEADER LINE,
+      gv_docnumber          TYPE edi_docnum.
+
+*/Parametros de Entrada
+PARAMETERS p_dni LIKE ztabla_usuarios-dni MATCHCODE OBJECT zsh_dni.
+
+
+*&---------------------------------------------------------------------*
+*&  Include           Z_ENVIAR_IDOC_SALIDA_F01
+*&---------------------------------------------------------------------*
+*&---------------------------------------------------------------------*
+*&      Form  edidc
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM edidc TABLES   pt_idoc_ctrl TYPE tyt_idoc_ctrl
+           CHANGING ps_idoc_ctrl TYPE tys_idoc_ctrl.
+
+*EDIDC
+  CONSTANTS: l_mestyp LIKE edidc-mestyp VALUE  'ZTM_USUARIOS',  "Tipo Mensaje
+             l_idoctp LIKE edidc-idoctp VALUE  'ZTB_USUARIOS',  "Tipo Base
+             l_rcvprn LIKE edidc-rcvprn VALUE  'NSP5000000',    "Numero de Partner del que recibe
+             l_rcvpor(10) TYPE c VALUE  'A000000003',           "Puerto de salida
+             l_rcvprt(2)  TYPE c VALUE  'LS'.                   "Sistema Lógico
+
+  CLEAR:  ps_idoc_ctrl, pt_idoc_ctrl.
+  REFRESH pt_idoc_ctrl.
+
+  ps_idoc_ctrl-mestyp   = l_mestyp.
+  ps_idoc_ctrl-doctyp   = l_mestyp.
+  ps_idoc_ctrl-idoctp   = l_idoctp.
+  ps_idoc_ctrl-serial   = sy-datum.
+  ps_idoc_ctrl-serial+8 = sy-uzeit.
+
+* Receiver
+  ps_idoc_ctrl-rcvprn  = l_rcvprn.
+  ps_idoc_ctrl-rcvpor  = l_rcvpor.
+  ps_idoc_ctrl-rcvprt  = l_rcvprt.
+  ps_idoc_ctrl-direct  = '1'.  "Si el IDOC es de salida 1, si es de entrada 2
+
+  MOVE ps_idoc_ctrl TO pt_idoc_ctrl.
+  APPEND pt_idoc_ctrl.
+ENDFORM.                    " edidc
+*&---------------------------------------------------------------------*
+*&      Form  data_idoc
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM data_idoc TABLES pt_idoc_data TYPE tyt_idoc_data
+               USING  p_dni        LIKE ztabla_usuarios-dni.
+
+  DATA: ls_usuarios TYPE tys_usuarios.
+
+* Obtenemos los datos de la tabla ZTABLA_USUARIOS
+  PERFORM obtener_datos_dni USING    p_dni
+                            CHANGING ls_usuarios.
+
+* Generamos un perform por cada segmento a cargar
+  PERFORM z1usuarios TABLES pt_idoc_data
+                     USING  ls_usuarios.
+
+
+ENDFORM.                    " data_idoc
+*&---------------------------------------------------------------------*
+*&      Form  obtener_datos_dni
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM obtener_datos_dni  USING    p_dni
+                        CHANGING ps_usuarios TYPE tys_usuarios.
+
+  SELECT SINGLE dni nombre_ape estado_usu direccion codigo_postal
+                f_nacimiento estado_civil
+    INTO ps_usuarios
+    FROM ztabla_usuarios
+    WHERE dni EQ p_dni.
+
+ENDFORM.                    " obtener_datos_dni
+*&---------------------------------------------------------------------*
+*&      Form  z1usuarios
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM z1usuarios  TABLES pt_idoc_data TYPE tyt_idoc_data
+                 USING  ps_usuarios  TYPE tys_usuarios.
+
+  CONSTANTS c_z1usuarios(10) TYPE c VALUE 'Z1USUARIOS'. "Segmento
+  DATA      lv_z1usuarios  TYPE  z1usuarios.
+
+*/Se mapean los campos
+  MOVE: ps_usuarios-dni        TO lv_z1usuarios-dni,
+        ps_usuarios-nombre_ape TO lv_z1usuarios-nombre_ape,
+        ps_usuarios-estado_usu TO lv_z1usuarios-estado_usu,
+        ps_usuarios-direccion  TO lv_z1usuarios-direccion,
+        ps_usuarios-codigo_postal TO lv_z1usuarios-codigo_postal,
+        ps_usuarios-f_nacimiento  TO lv_z1usuarios-f_nacimiento,
+        ps_usuarios-estado_civil  TO lv_z1usuarios-estado_civil.
+
+*/Completo carga del segmento.
+  pt_idoc_data-sdata  = lv_z1usuarios.
+  pt_idoc_data-segnam = c_z1usuarios.
+  APPEND pt_idoc_data.
+
+ENDFORM.                                                    " z1usuarios
+
+*&---------------------------------------------------------------------*
+*&      Form  outbound_usuarios
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+FORM outbound_usuarios  TABLES   pt_idoc_ctrl TYPE tyt_idoc_ctrl
+                                 pt_idoc_data TYPE tyt_idoc_data
+                        USING    ps_idoc_ctrl
+                        CHANGING p_docnumber.
+
+  CALL FUNCTION 'MASTER_IDOC_DISTRIBUTE'
+    EXPORTING
+      master_idoc_control            = ps_idoc_ctrl
+    TABLES
+      communication_idoc_control     = pt_idoc_ctrl
+      master_idoc_data               = pt_idoc_data
+    EXCEPTIONS
+      error_in_idoc_control          = 1
+      error_writing_idoc_status      = 2
+      error_in_idoc_data             = 3
+      sending_logical_system_unknown = 4
+      OTHERS                         = 5.
+
+  IF sy-subrc NE 0.
+    MESSAGE ID sy-msgid TYPE sy-msgty NUMBER sy-msgno
+            WITH sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4.
+  ELSE.
+    MOVE pt_idoc_ctrl-docnum TO p_docnumber.
+  ENDIF.
+
+  COMMIT WORK AND WAIT.
+
+ENDFORM.                    " outbound_usuarios
+

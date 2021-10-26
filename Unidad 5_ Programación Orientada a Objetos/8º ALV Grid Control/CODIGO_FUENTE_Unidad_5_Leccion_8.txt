@@ -1,0 +1,180 @@
+*&---------------------------------------------------------------------*
+*& Report  ZPRUEBA_ALV_GRID_OBJETOS
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zprueba_alv_grid_objetos.
+
+TYPE-POOLS: slis.
+
+* Tabla de salida del ALV
+DATA: ti_usuarios TYPE STANDARD TABLE OF ztabla_usuarios,
+      st_usuarios LIKE LINE OF ti_usuarios.
+
+* Tabla y estructura del catalogo
+DATA: ti_catalogo TYPE lvc_t_fcat,
+      st_catalogo LIKE LINE OF ti_catalogo,
+      ok_code TYPE sy-ucomm,
+      o_grilla TYPE REF TO cl_gui_alv_grid,
+      o_contenedor TYPE REF TO cl_gui_custom_container.
+
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+*----------------------------------------------------------------------*
+  PERFORM seleccion_datos.
+
+*----------------------------------------------------------------------*
+END-OF-SELECTION.
+*----------------------------------------------------------------------*
+  CALL SCREEN 0100.
+
+
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+  SET PF-STATUS '0100'.
+  SET TITLEBAR '0100'.
+
+ENDMODULE.                 " STATUS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*&      Module  CREAR_OBJETOS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE crear_objetos_0100 OUTPUT.
+
+  IF o_contenedor IS INITIAL.
+    CREATE OBJECT o_contenedor
+      EXPORTING
+        container_name = 'CONTENEDOR'.
+    CREATE OBJECT o_grilla
+      EXPORTING
+        i_parent = o_contenedor.
+
+    PERFORM armar_catalogo.
+
+    CALL METHOD o_grilla->set_table_for_first_display
+      CHANGING
+        it_outtab       = ti_usuarios
+        it_fieldcatalog = ti_catalogo[].
+  ELSE.
+    CALL METHOD o_grilla->refresh_table_display
+      EXPORTING
+        i_soft_refresh = 'X'
+      EXCEPTIONS
+        finished       = 1
+        others         = 2.
+    ENDIF.
+
+ENDMODULE.                 " CREAR_OBJETOS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*&      Form  ARMAR_CATALOGO
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM armar_catalogo .
+
+  CLEAR ti_catalogo.
+  REFRESH ti_catalogo.
+
+  CLEAR st_catalogo.
+  st_catalogo-fieldname = 'DNI'.
+  st_catalogo-tabname = 'TI_USUARIOS'.
+  st_catalogo-scrtext_s = 'DNI'.
+  st_catalogo-scrtext_m = 'DNI'.
+  st_catalogo-scrtext_l = 'DNI'.
+  APPEND st_catalogo TO ti_catalogo.
+
+  CLEAR st_catalogo.
+  st_catalogo-fieldname = 'NOMBRE_APE'.
+  st_catalogo-tabname = 'TI_USUARIOS'.
+  st_catalogo-scrtext_s = 'Nombre y Apellido'.
+  st_catalogo-scrtext_m = 'Nombre y Apellido'.
+  st_catalogo-scrtext_l = 'Nombre y Apellido'.
+  st_catalogo-outputlen = 25.
+  st_catalogo-just      = 'L'.
+  APPEND st_catalogo TO ti_catalogo.
+
+  CLEAR st_catalogo.
+  st_catalogo-fieldname = 'ESTADO_USU'.
+  st_catalogo-tabname = 'TI_USUARIOS'.
+  st_catalogo-scrtext_s = 'Estado usuario'.
+  st_catalogo-scrtext_m = 'Estado usuario'.
+  st_catalogo-scrtext_l = 'Estado usuario'.
+  st_catalogo-outputlen = 14.
+  st_catalogo-just      = 'L'.
+  APPEND st_catalogo TO ti_catalogo.
+
+  CLEAR st_catalogo.
+  st_catalogo-fieldname = 'DIRECCION'.
+  st_catalogo-tabname = 'TI_USUARIOS'.
+  st_catalogo-scrtext_s = 'Dirección'.
+  st_catalogo-scrtext_m = 'Dirección'.
+  st_catalogo-scrtext_l = 'Dirección'.
+  st_catalogo-outputlen = 25.
+  st_catalogo-just      = 'L'.
+  APPEND st_catalogo TO ti_catalogo.
+
+  CLEAR st_catalogo.
+  st_catalogo-fieldname = 'F_NACIMIENTO'.
+  st_catalogo-tabname = 'TI_USUARIOS'.
+  st_catalogo-scrtext_s = 'Fecha Nac.'.
+  st_catalogo-scrtext_m = 'Fecha Nac.'.
+  st_catalogo-scrtext_l = 'Fecha Nac.'.
+  st_catalogo-outputlen = 12.
+  st_catalogo-just      = 'L'.
+  APPEND st_catalogo TO ti_catalogo.
+
+  CLEAR st_catalogo.
+  st_catalogo-fieldname = 'ESTADO_CIVIL'.
+  st_catalogo-tabname = 'TI_USUARIOS'.
+  st_catalogo-scrtext_s = 'Estado civil'.
+  st_catalogo-scrtext_m = 'Estado civil'.
+  st_catalogo-scrtext_l = 'Estado civil'.
+  st_catalogo-outputlen = 12.
+  st_catalogo-just      = 'L'.
+  APPEND st_catalogo TO ti_catalogo.
+
+ENDFORM.                    " ARMAR_CATALOGO
+
+*&---------------------------------------------------------------------*
+*&      Module  SALIR_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE salir_0100 INPUT.
+
+  CALL METHOD o_grilla->free.
+  CALL METHOD o_contenedor->free.
+
+  LEAVE PROGRAM.
+
+ENDMODULE.                 " SALIR_0100  INPUT
+*&---------------------------------------------------------------------*
+*&      Form  SELECCION_DATOS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM seleccion_datos .
+
+  CLEAR ti_usuarios.
+  REFRESH ti_usuarios.
+
+  SELECT dni nombre_ape estado_usu direccion codigo_postal
+         f_nacimiento estado_civil
+   FROM ztabla_usuarios
+    INTO CORRESPONDING FIELDS OF TABLE ti_usuarios.
+
+ENDFORM.                    " SELECCION_DATOS
+

@@ -1,0 +1,64 @@
+*&---------------------------------------------------------------------*
+*& Report  ZPOLIMORFISMO
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zpolimorfismo.
+
+*----------------------------------------------------------------------*
+*       CLASS c1 DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS c1 DEFINITION.
+  PUBLIC SECTION.
+    METHODS m1 IMPORTING p1 TYPE string.
+  PRIVATE SECTION.
+    DATA a1 TYPE string VALUE `c1: `.
+ENDCLASS.                    "c1 DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS c2 DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS c2 DEFINITION INHERITING FROM c1.
+  PUBLIC SECTION.
+    METHODS m1 REDEFINITION.
+  PRIVATE SECTION.
+    DATA a1 TYPE string VALUE `c2: `.
+ENDCLASS.                    "c2 DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS c1 IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS c1 IMPLEMENTATION.
+  METHOD m1.
+    CONCATENATE a1 p1 INTO a1.
+    WRITE / a1.
+  ENDMETHOD.                    "m1
+ENDCLASS.                    "c1 IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+*       CLASS c2 IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS c2 IMPLEMENTATION.
+  METHOD m1.
+    super->m1( p1 ).
+    CONCATENATE a1 p1 INTO a1.
+    WRITE / a1.
+  ENDMETHOD.                    "m1
+ENDCLASS.                    "c2 IMPLEMENTATION
+
+START-OF-SELECTION.
+
+  DATA oref TYPE REF TO c1.
+
+  CREATE OBJECT oref TYPE c2.
+  oref->m1( `...` ).

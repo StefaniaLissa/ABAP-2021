@@ -1,0 +1,74 @@
+*&---------------------------------------------------------------------*
+*& Report  ZEJERCICIO_EVENTOS
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zejercicio_eventos.
+
+*----------------------------------------------------------------------*
+*       CLASS contador DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador DEFINITION.
+  PUBLIC SECTION.
+    METHODS incrementar_contador.
+    EVENTS valor_critico EXPORTING value(exceso) TYPE i.
+  PRIVATE SECTION.
+    DATA: cuenta   TYPE i,
+          umbral   TYPE i VALUE 10.
+ENDCLASS.                    "contador DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS contador IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador IMPLEMENTATION.
+  METHOD incrementar_contador.
+    DATA diferencia TYPE i.
+    ADD 1 TO cuenta.
+    IF cuenta > umbral.
+      diferencia = cuenta - umbral.
+      RAISE EVENT valor_critico EXPORTING exceso = diferencia.
+    ENDIF.
+  ENDMETHOD.                    "incrementar_contador
+ENDCLASS.                    "contador IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+*       CLASS manejador DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS manejador DEFINITION.
+  PUBLIC SECTION.
+    METHODS manejar_exceso FOR EVENT valor_critico OF contador
+            IMPORTING exceso.
+ENDCLASS.                    "manejador DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS manejador IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS manejador IMPLEMENTATION.
+  METHOD manejar_exceso.
+    WRITE: / 'El Exceso es: ', exceso.
+  ENDMETHOD.                    "manejar_exceso
+ENDCLASS.                    "manejador IMPLEMENTATION
+
+DATA: cuenta TYPE REF TO contador,
+      manejador TYPE REF TO manejador.
+
+START-OF-SELECTION.
+
+  CREATE OBJECT: cuenta, manejador.
+
+  SET HANDLER manejador->manejar_exceso FOR ALL INSTANCES.
+
+  DO 20 TIMES.
+    CALL METHOD cuenta->incrementar_contador.
+  ENDDO.
+

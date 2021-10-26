@@ -1,0 +1,72 @@
+*&---------------------------------------------------------------------*
+*& Report  z_test_punteros_modif
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  z_test_punteros_modif.
+
+* Utilizamos el tipo de mensaje MATMAS
+DATA: message_type       LIKE bdcps-mestype VALUE 'MATMAS',
+      message_type_write LIKE edidc-mestyp VALUE 'MATMAS',
+      creation_date_high LIKE sy-datum,
+      creation_time_high LIKE sy-uzeit,
+      c_x                LIKE bdcps-process	VALUE 'X'.
+
+* Changepointer
+DATA: BEGIN OF t_chgptrs OCCURS 10.
+        INCLUDE STRUCTURE bdcp.
+DATA: END OF t_chgptrs.
+
+DATA: BEGIN OF t_cpident OCCURS 10,
+        cpident LIKE bdcp-cpident,
+      END OF t_cpident.
+
+*&---------------------------------------------------------------------*
+START-OF-SELECTION.
+*&---------------------------------------------------------------------*
+
+CLEAR: t_chgptrs, t_cpident.
+REFRESH: t_chgptrs, t_cpident.
+
+MOVE: sy-datum TO creation_date_high,
+      sy-uzeit TO creation_time_high.
+
+* read all not processed change pointer for the give messagetype
+CALL FUNCTION 'CHANGE_POINTERS_READ'
+  EXPORTING
+    message_type                = message_type
+    creation_date_high          = creation_date_high       
+    creation_time_high          = creation_time_high        
+    read_not_processed_pointers = c_x
+  TABLES
+    change_pointers             = t_chgptrs.
+
+LOOP AT t_chgptrs.
+  MOVE t_chgptrs-cpident TO t_cpident-cpident.
+  APPEND t_cpident.
+ENDLOOP.
+
+* write staus of all processed pointers
+CALL FUNCTION 'CHANGE_POINTERS_STATUS_WRITE'
+  EXPORTING
+    message_type           = message_type_write
+  TABLES
+    change_pointers_idents = t_cpident.
+
+CLEAR t_chgptrs.
+REFRESH t_chgptrs.
+* read all not processed change pointer for the give messagetype
+CALL FUNCTION 'CHANGE_POINTERS_READ'
+  EXPORTING
+    message_type                = message_type
+    creation_date_high          = creation_date_high        
+    creation_time_high          = creation_time_high      
+    read_not_processed_pointers = c_x
+  TABLES
+    change_pointers             = t_chgptrs.
+
+WRITE:/ 'Finalizo el proceso de borrado de Pointers'.
+
+

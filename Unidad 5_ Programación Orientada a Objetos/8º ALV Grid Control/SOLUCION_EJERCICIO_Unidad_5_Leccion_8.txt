@@ -1,0 +1,108 @@
+*&---------------------------------------------------------------------*
+*& Report  ZALV_GRID_SFLIGHT
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  zalv_grid_sflight.
+
+TYPE-POOLS: slis.
+
+* Tabla de salida del ALV
+DATA: ti_vuelos TYPE STANDARD TABLE OF sflight,
+      st_vuelos LIKE LINE OF ti_vuelos.
+
+DATA: ok_code TYPE sy-ucomm,
+      o_grilla TYPE REF TO cl_gui_alv_grid,
+      o_contenedor TYPE REF TO cl_gui_custom_container.
+
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+*----------------------------------------------------------------------*
+  PERFORM seleccion_datos.
+
+*----------------------------------------------------------------------*
+END-OF-SELECTION.
+*----------------------------------------------------------------------*
+  CALL SCREEN 0100.
+
+
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+  SET PF-STATUS '0100'.
+  SET TITLEBAR '0100'.
+
+ENDMODULE.                 " STATUS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*&      Module  CREAR_OBJETOS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE crear_objetos_0100 OUTPUT.
+
+  IF o_contenedor IS INITIAL.
+
+    CREATE OBJECT o_contenedor
+      EXPORTING
+        container_name = 'CONTENEDOR'.
+
+    CREATE OBJECT o_grilla
+      EXPORTING
+        i_parent = o_contenedor.
+
+    CALL METHOD o_grilla->set_table_for_first_display
+      EXPORTING
+        i_structure_name = 'SFLIGHT'
+      CHANGING
+        it_outtab        = ti_vuelos
+      EXCEPTIONS
+        OTHERS           = 4.
+  ELSE.
+
+    CALL METHOD o_grilla->refresh_table_display
+      EXPORTING
+        i_soft_refresh = 'X'
+      EXCEPTIONS
+        finished       = 1
+        OTHERS         = 2.
+
+  ENDIF.
+
+ENDMODULE.                 " CREAR_OBJETOS_0100  OUTPUT
+
+*&---------------------------------------------------------------------*
+*&      Module  SALIR_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE salir_0100 INPUT.
+
+  CALL METHOD o_grilla->free.
+  CALL METHOD o_contenedor->free.
+
+  LEAVE PROGRAM.
+
+ENDMODULE.                 " SALIR_0100  INPUT
+*&---------------------------------------------------------------------*
+*&      Form  SELECCION_DATOS
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM seleccion_datos .
+
+  CLEAR ti_vuelos.
+  REFRESH ti_vuelos.
+
+  SELECT *
+   FROM sflight
+    INTO TABLE ti_vuelos.
+
+ENDFORM.                    " SELECCION_DATOS

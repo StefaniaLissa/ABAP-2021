@@ -1,0 +1,70 @@
+* DECLARACION DE DATOS
+
+DATA:
+      c_message_type      LIKE edidc-mestyp VALUE 'ZINVRV',  "Tipo Mensaje
+      c_base_idoc_type    LIKE edidc-idoctp VALUE 'ZINVRV01',"Tipo de Idoc    
+      c_invrev_segname(7) TYPE C VALUE 'Z1INVRV',            "Nombre Segmento
+      c_rcvprn            LIKE edidc-rcvprn VALUE 'SAPBCD',  "Interloc. Destinat
+
+      IDOC_CONTROL   LIKE EDIDC,
+      T_COMM_CONTROL LIKE EDIDC OCCURS 0 WITH HEADER LINE,
+      IDOC_DATA      LIKE EDIDD OCCURS 0 WITH HEADER LINE.
+
+
+* CAMPOS DE CONTROL DEL IDOC
+
+        idoc_control-doctyp   = c_message_type.      "Tipo Mensaje
+        idoc_control-mestyp   = c_message_type.      "Tipo Mensaje
+        idoc_control-idoctp   = c_base_idoc_type.    "Tipo de Idoc
+        idoc_control-serial   = space.            
+        idoc_control-direct   = '1'.              
+        idoc_control-serial   = sy-datum.         
+        idoc_control-serial+8 = sy-uzeit.       
+        idoc_control-rcvprn   = c_rcvprn         "Nro Interlocutor Destinatario
+        idoc_control-rcvprt   = 'LS'             "Tipo interlocutor destinatario
+                                                
+        APPEND idoc_control.                    
+
+
+* CAMPOS DE DATOS DEL IDOC
+
+* Esta sección la repite una vez por cada registro de datos a insertar
+* en el IDoc.
+
+* Indica cuál es el tipo de segmento
+  IDOC_DATA-SEGNAM = C_INVREV_SEGNAME.          "Nombre Segmento
+
+* Completa los datos de la estructura del segmento 
+  CLEAR Z1INVRV.
+  Z1INVRV-CAMPO_01 = VALOR_01
+  ...
+  ...
+  ...
+  Z1INVRV-CAMPO_NN = VALOR_NN
+
+* Mueve la estructura con los datos del segmento al único campo de datos.
+  IDOC_DATA-SDATA = Z1INVRV.                    "Datos del Segmento
+
+
+* Inserta el registro actual a la tabla interna de datos del Idoc
+  APPEND IDOC_DATA.			 
+
+
+*--- Call the distribute function with the required parameters
+CALL FUNCTION 'MASTER_IDOC_DISTRIBUTE'
+		EXPORTING
+			MASTER_IDOC_CONTROL              = IDOC_CONTROL
+		TABLES
+			COMMUNICATION_IDOC_CONTROL       = T_COMM_CONTROL
+			MASTER_IDOC_DATA                 = IDOC_DATA
+		EXCEPTIONS
+			ERROR_IN_IDOC_CONTROL			= 1
+			ERROR_WRITING_IDOC_STATUS		= 2
+			ERROR_IN_IDOC_DATA			= 3
+			SENDING_LOGICAL_SYSTEM_UNKNOWN	= 4
+			OTHERS					= 5.
+
+IF SY-SUBRC EQ 0.
+  COMMIT WORK.
+ENDIF.
+

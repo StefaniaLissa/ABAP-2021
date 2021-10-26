@@ -1,0 +1,92 @@
+*&---------------------------------------------------------------------*
+*& Report  ZPRUEBA_INTERFACES
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT  ZPRUEBA_INTERFACES.
+
+*----------------------------------------------------------------------*
+*       INTERFACE estado
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+INTERFACE estado.
+  METHODS imprimir.
+ENDINTERFACE.                    "estado
+
+*----------------------------------------------------------------------*
+*       CLASS contador DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES estado.
+    METHODS incrementar.
+  PRIVATE SECTION.
+    DATA cuenta TYPE i.
+ENDCLASS.                    "contador DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS contador IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS contador IMPLEMENTATION.
+  METHOD estado~imprimir.
+    WRITE: / 'La cuenta en el contador es:    ', cuenta.
+  ENDMETHOD.                    "estado~imprimir
+  METHOD incrementar.
+    ADD 1 TO cuenta.
+  ENDMETHOD.                    "incrementar
+ENDCLASS.                    "contador IMPLEMENTATION
+
+*----------------------------------------------------------------------*
+*       CLASS bicicleta DEFINITION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS bicicleta DEFINITION.
+  PUBLIC SECTION.
+    INTERFACES estado.
+    METHODS manejar.
+  PRIVATE SECTION.
+    DATA velocidad TYPE i.
+ENDCLASS.                    "bicicleta DEFINITION
+
+*----------------------------------------------------------------------*
+*       CLASS bicicleta IMPLEMENTATION
+*----------------------------------------------------------------------*
+*
+*----------------------------------------------------------------------*
+CLASS bicicleta IMPLEMENTATION.
+  METHOD estado~imprimir.
+    WRITE: / 'La velocidad de la bicicleta es: ', velocidad.
+  ENDMETHOD.                    "estado~imprimir
+  METHOD manejar.
+    ADD 10 TO velocidad.
+  ENDMETHOD.                    "manejar
+ENDCLASS.                    "bicicleta IMPLEMENTATION
+
+DATA: cuenta  TYPE REF TO contador,
+      bici   TYPE REF TO bicicleta,
+      estado TYPE REF TO estado,
+      ti_estado TYPE TABLE OF REF TO estado.
+
+START-OF-SELECTION.
+
+  CREATE OBJECT: cuenta, bici.
+
+  DO 5 TIMES.
+    CALL METHOD: cuenta->incrementar,
+                 bici->manejar.
+  ENDDO.
+
+  APPEND: cuenta TO ti_estado,
+          bici   TO ti_estado.
+
+  LOOP AT ti_estado INTO estado.
+    CALL METHOD estado->imprimir.
+  ENDLOOP.

@@ -1,0 +1,317 @@
+*&---------------------------------------------------------------------*
+*& Report  Z_ALV_TREE_USUARIOS
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+REPORT z_alv_tree_usuarios.
+
+*----------------------------------------------------------------------*
+*  DECLARACION DE TYPES
+*----------------------------------------------------------------------*
+TYPES: BEGIN OF ty_usuarios,
+        codigo_postal TYPE z_codigo_postal,
+        dni	      TYPE z_dni,
+        nombre_ape    TYPE z_nombre_ape,
+        estado_usu    TYPE z_estado_usu,
+        direccion     TYPE zz_direccion,
+        f_nacimiento  TYPE z_fecha_nac,
+        estado_civil  TYPE z_estado_civil,
+       END OF ty_usuarios.
+
+TYPES: BEGIN OF ty_header,
+        codigo_postal TYPE ztabla_usuarios-codigo_postal,
+       END OF ty_header.
+
+*----------------------------------------------------------------------*
+*  DECLARACION DE TABLAS INTERNAS
+*----------------------------------------------------------------------*
+DATA: t_usuarios TYPE STANDARD TABLE OF ty_usuarios WITH HEADER LINE,
+      tab_tree   TYPE STANDARD TABLE OF ty_usuarios WITH HEADER LINE,
+      t_tree     TYPE STANDARD TABLE OF ty_usuarios WITH HEADER LINE,
+      t_header   TYPE STANDARD TABLE OF ty_header   WITH HEADER LINE.
+
+*----------------------------------------------------------------------*
+*  DECLARACION DE VARIABLES
+*----------------------------------------------------------------------*
+DATA: g_alv_tree         TYPE REF TO cl_gui_alv_tree,
+      l_hierarchy_header TYPE treev_hhdr,
+      gs_fieldcat        TYPE lvc_s_fcat,
+      gt_fieldcat_tree   TYPE lvc_t_fcat,
+      g_custom_container TYPE REF TO cl_gui_custom_container.
+
+*----------------------------------------------------------------------*
+*  DECLARACION DE FIELD-SYMBOLS
+*----------------------------------------------------------------------*
+FIELD-SYMBOLS:  <header> LIKE LINE OF t_header,
+                <ztabla_usuarios> LIKE LINE OF t_usuarios.
+
+*----------------------------------------------------------------------*
+START-OF-SELECTION.
+*----------------------------------------------------------------------*
+
+* Obtenemos los datos que se mostrarán en el ALV
+  PERFORM obtener_datos.
+
+  IF g_alv_tree IS INITIAL.
+
+*   Se crearán los objetos correspondientes al CONTAINER y el ALV TREE
+    PERFORM init_tree.
+
+    CALL METHOD cl_gui_cfw=>flush
+      EXCEPTIONS
+        cntl_system_error = 1
+        cntl_error        = 2.
+  ENDIF.
+
+  CALL SCREEN 100.
+
+*----------------------------------------------------------------------*
+*       FORM init_tree                                            *
+*----------------------------------------------------------------------*
+FORM init_tree.
+
+  DATA: l_tree_container_name(30) TYPE c.
+
+  l_tree_container_name = 'TREE_CONTROL'.
+
+* Creamos el objeto CONTAINER
+  CREATE OBJECT g_custom_container
+    EXPORTING
+      container_name              = l_tree_container_name
+    EXCEPTIONS
+      cntl_error                  = 1
+      cntl_system_error           = 2
+      create_error                = 3
+      lifetime_error              = 4
+      lifetime_dynpro_dynpro_link = 5.
+
+
+* Creamos el objeto del ALV TREE
+  CREATE OBJECT g_alv_tree
+    EXPORTING
+      parent                      = g_custom_container
+      node_selection_mode         = cl_gui_column_tree=>node_sel_mode_single
+      item_selection              = ''
+      no_html_header              = 'X'
+      no_toolbar                  = ''
+    EXCEPTIONS
+      cntl_error                  = 1
+      cntl_system_error           = 2
+      create_error                = 3
+      lifetime_error              = 4
+      illegal_node_selection_mode = 5
+      failed                      = 6
+      illegal_column_name         = 7.
+
+* Completamos el catálogo
+  PERFORM fill_catalog_tree.
+
+* Construimos la jerarquia del ALV TREE
+  PERFORM build_hierarchy_header CHANGING l_hierarchy_header.
+
+* Ejecutamos el método que muestra el ALV
+  CALL METHOD g_alv_tree->set_table_for_first_display
+    EXPORTING
+      is_hierarchy_header = l_hierarchy_header
+    CHANGING
+      it_outtab           = t_tree[]
+      it_fieldcatalog     = gt_fieldcat_tree.
+
+  PERFORM create_hierarchy.
+
+ENDFORM.                    "INIT_TREE
+
+*----------------------------------------------------------------------*
+*   FORM FILL_CATALOG_TREE
+*----------------------------------------------------------------------*
+FORM fill_catalog_tree.
+
+  DATA: gs_fieldcat_add TYPE lvc_s_fcat.
+
+  CLEAR gs_fieldcat.
+  gs_fieldcat-col_pos   = 2.
+  gs_fieldcat-reptext   = 'DNI'.
+  gs_fieldcat-scrtext_s = 'DNI'.
+  gs_fieldcat-fieldname = 'DNI'.
+  gs_fieldcat-tabname   = 'T_USUARIOS'.
+  APPEND gs_fieldcat TO gt_fieldcat_tree.
+
+  CLEAR gs_fieldcat.
+  gs_fieldcat-col_pos   = 3.
+  gs_fieldcat-reptext   = 'Nombre Apellido'.
+  gs_fieldcat-scrtext_s = 'Nombre Apellido'.
+  gs_fieldcat-fieldname = 'NOMBRE_APE'.
+  gs_fieldcat-tabname   = 'T_USUARIOS'.
+  gs_fieldcat-outputlen = '15'.
+  APPEND gs_fieldcat TO gt_fieldcat_tree.
+
+  CLEAR gs_fieldcat.
+  gs_fieldcat-col_pos   = 4.
+  gs_fieldcat-reptext   = 'Estado Usuario'.
+  gs_fieldcat-scrtext_s = 'Estado Usuario'.
+  gs_fieldcat-fieldname = 'ESTADO_USU'.
+  gs_fieldcat-tabname   = 'T_USUARIOS'.
+  gs_fieldcat-outputlen = '20'.
+  APPEND gs_fieldcat TO gt_fieldcat_tree.
+
+  CLEAR gs_fieldcat.
+  gs_fieldcat-col_pos   = 5.
+  gs_fieldcat-reptext   = 'Dirección'.
+  gs_fieldcat-scrtext_s = 'Dirección'.
+  gs_fieldcat-fieldname = 'DIRECCION'.
+  gs_fieldcat-tabname   = 'T_USUARIOS'.
+  gs_fieldcat-outputlen = '15'.
+  APPEND gs_fieldcat TO gt_fieldcat_tree.
+
+  CLEAR gs_fieldcat.
+  gs_fieldcat-col_pos   = 6.
+  gs_fieldcat-reptext   = 'Fecha Nacimiento'.
+  gs_fieldcat-scrtext_s = 'Fecha Nacimiento'.
+  gs_fieldcat-fieldname = 'F_NACIMIENTO'.
+  gs_fieldcat-tabname   = 'T_USUARIOS'.
+  gs_fieldcat-outputlen = '20'.
+  APPEND gs_fieldcat TO gt_fieldcat_tree.
+
+  CLEAR gs_fieldcat.
+  gs_fieldcat-col_pos   = 7.
+  gs_fieldcat-reptext   = 'Estado civil'.
+  gs_fieldcat-scrtext_s = 'Estado civil'.
+  gs_fieldcat-fieldname = 'ESTADO_CIVIL'.
+  gs_fieldcat-tabname   = 'T_USUARIOS'.
+  gs_fieldcat-outputlen = '20'.
+  APPEND gs_fieldcat TO gt_fieldcat_tree.
+
+ENDFORM.                    "FILL_CATALOG_TREE
+*----------------------------------------------------------------------*
+*       FORM build_hierarchy_header
+*----------------------------------------------------------------------*
+FORM build_hierarchy_header CHANGING p_hierarchy_header TYPE treev_hhdr.
+
+  CLEAR p_hierarchy_header.
+  p_hierarchy_header-heading   = 'Codigo_postal'(300).
+  p_hierarchy_header-width     = 18.
+  p_hierarchy_header-width_pix = ' '.
+
+ENDFORM.                    "BUILD_HIERARCHY_HEADER
+*----------------------------------------------------------------------*
+*       FORM create_hierarchy                                         *
+*----------------------------------------------------------------------*
+FORM create_hierarchy.
+
+  DATA: l_root_key TYPE lvc_nkey,
+        l_next_key TYPE lvc_nkey,
+        l_last_key TYPE lvc_nkey,
+        header TYPE string,
+        w_menge_text(13) TYPE c.
+
+  CLEAR l_root_key.
+
+  LOOP AT t_header ASSIGNING <header>.
+
+    CLEAR l_root_key.
+    CLEAR l_next_key.
+
+*   Agregamos un nuevo nodo en el ALV TREE
+    PERFORM add_node USING    <header>-codigo_postal l_root_key
+                     CHANGING l_next_key.
+
+    LOOP AT t_usuarios ASSIGNING <ztabla_usuarios> WHERE codigo_postal EQ <header>-codigo_postal.
+
+      MOVE-CORRESPONDING  <ztabla_usuarios> TO tab_tree.
+      PERFORM add_leaf USING    tab_tree l_next_key
+                       CHANGING l_last_key.
+    ENDLOOP.
+
+  ENDLOOP.
+
+* Actualizamos el ALV TREE
+  CALL METHOD g_alv_tree->frontend_update.
+
+ENDFORM.                    "CREATE_HIERARCHY
+
+*----------------------------------------------------------------------*
+*       FORM ADD_NODE
+*----------------------------------------------------------------------*
+FORM add_node USING l_name l_root_key CHANGING l_next_key.
+
+  DATA: l_node_text TYPE lvc_value,
+        ls_tree     TYPE ty_usuarios.
+
+  l_node_text =  l_name.
+
+  CALL METHOD g_alv_tree->add_node
+    EXPORTING
+      i_relat_node_key = l_root_key
+      i_relationship   = cl_gui_column_tree=>relat_last_child
+      i_node_text      = l_node_text
+      is_outtab_line   = ls_tree
+    IMPORTING
+      e_new_node_key   = l_next_key.
+
+ENDFORM.                    "ADD_NODE
+
+*----------------------------------------------------------------------*
+*       FORM ADD_LEAF                                                 *
+*----------------------------------------------------------------------*
+FORM add_leaf USING    l_tree TYPE ty_usuarios
+                       l_next_key
+              CHANGING l_last_key.
+
+  CALL METHOD g_alv_tree->add_node
+    EXPORTING
+      i_relat_node_key = l_next_key
+      i_relationship   = cl_gui_column_tree=>relat_last_child
+      is_outtab_line   = tab_tree
+    IMPORTING
+      e_new_node_key   = l_last_key.
+
+ENDFORM.                    "ADD_LEAF
+
+*----------------------------------------------------------------------*
+*       FORM OBTENER_DATOS
+*----------------------------------------------------------------------*
+FORM obtener_datos.
+
+  SELECT dni nombre_ape estado_usu direccion codigo_postal f_nacimiento
+         estado_civil
+  INTO CORRESPONDING FIELDS OF TABLE t_usuarios
+  FROM ztabla_usuarios.
+
+  IF sy-subrc EQ 0.
+    LOOP AT t_usuarios ASSIGNING <ztabla_usuarios>.
+      MOVE <ztabla_usuarios>-codigo_postal TO t_header-codigo_postal.
+      APPEND t_header.
+    ENDLOOP.
+
+    SORT t_header.
+
+    DELETE ADJACENT DUPLICATES FROM t_header.
+
+  ENDIF.
+
+ENDFORM.                    "OBTENER_DATOS
+
+*&---------------------------------------------------------------------*
+*&      Module  STATUS_0100  OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+
+  SET PF-STATUS '0100'.
+  SET TITLEBAR '0100'.
+
+ENDMODULE.                 " STATUS_0100  OUTPUT
+
+*&---------------------------------------------------------------------*
+*&      Module  EXIT_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE exit_command_0100 INPUT.
+
+  LEAVE PROGRAM.
+
+ENDMODULE.                 " EXIT_COMMAND_0100  INPUT
